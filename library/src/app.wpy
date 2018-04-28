@@ -1,0 +1,193 @@
+<script>
+import wepy from 'wepy'
+import 'wepy-async-function'
+var ga = require('./ga.js')
+var GoogleAnalytics = ga.GoogleAnalytics
+var HitBuilders = ga.HitBuilders
+
+export default class extends wepy.app {
+  config = {
+    pages: [
+      // tab-bar
+//      'pages/test',
+      'pages/index',
+      'pages/collect',
+      'pages/qr',
+      'pages/borrow',
+      // 'pages/party',
+      'pages/user',
+
+      // 首页
+      'pages/main/search',
+      'pages/main/list',
+      'pages/main/detail',
+
+      // 图书
+      'pages/book/comment',
+      'pages/book/comments',
+      'pages/book/list',
+      'pages/book/detail',
+
+      // 图书馆管理
+      'pages/library/library',
+      'pages/library/borrow',
+      'pages/library/usercollect',
+      'pages/library/members',
+      'pages/library/borrows',
+      'pages/library/book',
+      'pages/library/book_edit',
+      'pages/library/sorts',
+      'pages/library/sorts_list',
+      'pages/library/sort',
+      'pages/library/create',
+
+      'pages/borrow/subscribe',
+      'pages/borrow/result',
+
+      // 我的
+      'pages/user/register',
+      'pages/user/follower',
+      'pages/user/booklist',
+      'pages/user/borrow',
+      'pages/user/borrows',
+      'pages/user/return',
+      'pages/user/collect',
+      'pages/user/subscribe'
+    ],
+    window: {
+      navigationBarTitleText: '友福图书馆',
+      navigationBarTextStyle: 'white',
+      navigationBarBackgroundColor: '#049BFF',
+      backgroundColor: '#eaeaea',
+      backgroundTextStyle: 'light',
+      enablePullDownRefresh: true
+    },
+    tabBar: {
+      color: '#707070',
+      selectedColor: '#049BFF',
+      backgroundColor: '#fff',
+      borderStyle: 'black',
+      list: [{
+        pagePath: 'pages/index',
+        selectedIconPath: './images/tabbars/icon-home-active.png',
+        iconPath: './images/tabbars/icon-home.png',
+        text: '首页'
+      }, {
+        pagePath: 'pages/collect',
+        selectedIconPath: './images/tabbars/icon-book-active.png',
+        iconPath: './images/tabbars/icon-book.png',
+        text: '藏书'
+      }, {
+        pagePath: 'pages/qr',
+        selectedIconPath: './images/tabbars/icon-qr-active.png',
+        iconPath: './images/tabbars/icon-qr.png',
+        text: '扫码'
+      /* }, {
+        pagePath: 'pages/party',
+        selectedIconPath: './images/tabbars/icon-shelf-active@2x.png',
+        iconPath: './images/tabbars/icon-shelf@2x.png',
+        text: '聚会' */
+      }, {
+        pagePath: 'pages/borrow',
+        selectedIconPath: './images/tabbars/icon-book2-active.png',
+        iconPath: './images/tabbars/icon-book2.png',
+        text: '书房'
+      }, {
+        pagePath: 'pages/user',
+        selectedIconPath: './images/tabbars/icon-my-active.png',
+        iconPath: './images/tabbars/icon-my.png',
+        text: '我的'
+      }]
+    },
+    networkTimeout: {
+      request: 5000,
+      downloadFile: 10000
+    },
+    debug: true
+  }
+
+  globalData = {
+    user: null,
+    cart: null,
+    tracker: null
+  }
+
+  constructor () {
+    super()
+    this.use('requestfix')
+  }
+
+  onLaunch() {
+  }
+
+  onShow(options) {
+  }
+
+  onShareAppMessage(title = '友福图书馆') {
+    return {
+      title: title,
+//      path: '/pages/index',
+      // imageUrl: '',
+      success: function(res) {
+        // 转发成功
+        console.log(res.errMsg)
+      },
+      fail: function(res) {
+        // 转发失败
+        console.log(res.errMsg)
+      }
+    }
+  }
+
+  /* ============= 工具方法（app没法用mixins，就再写一遍了） ============= */
+  isObject(item) {
+    return typeof item === 'object' && !this.isArray(item)
+  }
+  isArray(item) {
+    return Object.prototype.toString.apply(item) === '[object Array]'
+  }
+  isUndefined(item) {
+    return typeof item === 'undefined'
+  }
+
+  // Google analytics
+  getTracker(name, text) {
+    if (!this.globalData.tracker) {
+      // 初始化GoogleAnalytics Tracker
+      this.globalData.tracker = GoogleAnalytics.getInstance(this)
+      .setAppName('友福图书馆')
+      .setAppVersion('v0.4')
+      .newTracker('UA-109097480-1')
+    }
+    var t = this.globalData.tracker
+    t.setScreenName(text)
+    t.send(new HitBuilders.ScreenViewBuilder().build())
+  }
+  /* ========================= 更新缓存信息 ======================== */
+
+  $updateGlobalData(name, obj) {
+    // 校验: globalData
+    if (!this.globalData) return
+    // 校验: 操作字段
+    if (typeof name !== 'string' || name === '') return {}
+    // 取已有信息
+    const info = this.globalData[name] || {}
+    // 更新缓存
+    if (obj && this.isObject(obj)) {
+      // Object合并第一层
+      this.globalData[name] = Object.assign({}, info, obj)
+    } else if (!this.isUndefined(obj)) {
+      // 其他非undefined数据直接覆盖
+      this.globalData[name] = obj
+    }
+    this.$apply && this.$apply()
+    console.info(`[${obj ? 'UPDATE' : 'GET'} GlobalData ${name}]:`, this.globalData[name])
+    return this.globalData[name]
+  }
+}
+</script>
+
+<style lang="less">
+@import "./styles/weui/index.less";
+@import "./styles/custom/index.less";
+</style>

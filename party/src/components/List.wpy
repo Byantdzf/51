@@ -11,7 +11,7 @@
       <view class="clearfloat"></view>
       <view style="width: 100%" class="font_32 bold">{{item.title}}</view>
       <view style="width: 100%" class="font_28 flo_l">
-        <view class="flo_l">{{item.start_time}}</view>
+        <view class="flo_l">时间：{{item.start_time}}</view>
         <view class="orange flo_l" style="margin-left: 22rpx;">{{item.duration}}小时</view>
       </view>
       <!--<view class="font_28"> 时长：</view>-->

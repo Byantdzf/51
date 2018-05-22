@@ -1,34 +1,20 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <template>
   <view class="main-register">
     <view class="weui-message">
       为方便彼此识别及联系，请完善如下基本信息：
     </view>
     <view class="weui-cells weui-cells_after-title main-address">
+      <view class="weui-cell reset-cell-block" style=" width: 100%; position: absolute;left: 25rpx;top: -100rpx;">
+        <image src="{{avatarUrl}}" mode="aspectFit" class="party_image flo_l" style="width: 120rpx;height: 120rpx;box-shadow: 1rpx 1rpx 12rpx #dedede"></image>
+        <!--<view class="font_28 ellipsis_1 flo_l" style="position:absolute;left: 20%; bottom: 0;">{{nickName}}卡画家雕刻家阿斯顿哈会计师会计</view>-->
+        <view class="clearfloat"></view>
+      </view>
       <view class="weui-cell reset-cell-block">
         <view class="weui-media-box__title h3 color-666">姓名：</view>
       </view>
       <view class="weui-cell weui-cell_input">
         <view class="weui-cell__bd h4">
-          <input @input="typing('name')" class="weui-input" value="{{name}}" placeholder="你的姓名"/>
+          <input @input="typing('name')" class="weui-input" value="{{name}}" placeholder="你的真实姓名"/>
         </view>
       </view>
       <view class="weui-cell reset-cell-block">
@@ -88,7 +74,11 @@
       wechat_code: '',
       loading: false,
       timer: null,
-      time: 0
+      time: 0,
+      encryptedData: '',
+      iv: '',
+      avatarUrl: '',
+      nickName: ''
     }
 
 //    computed = {
@@ -117,8 +107,7 @@
     }
 
     onShow() {
-      // 清空code
-      this.code = ''
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
     }
 
     onPullDownRefresh() {
@@ -132,6 +121,20 @@
       }
 //      this.$doLogin()
       this.$setCode()
+      wepy.getUserInfo({
+        success: (res) => {
+          wx.setStorageSync('user', res.userInfo)
+//          code: wx.getStorageSync('code'),
+          console.log(res.userInfo)
+          this.avatarUrl = res.userInfo.avatarUrl
+          this.nickName = res.userInfo.nickName
+          this.encryptedData = res.encryptedData
+          this.iv = res.iv
+          console.log(this.iv)
+          this.$apply()
+        },
+        fail: (res) => { }
+      })
     }
     getPhoneNumber(e) {
       this.$setCode()
@@ -183,45 +186,35 @@
         if (!this.isPhone(this.mobile)) {
           return this.$alert('温馨提示', '请输入正确的手机号码')
         }
-        wepy.getUserInfo({
-          success: (res) => {
-            // 缓存用户信息
-            wx.setStorageSync('user', res.userInfo)
-            const data = {
-              mobile: this.getString(this.mobile),
-              code: wx.getStorageSync('code'),
-              name: this.getString(this.name),
-//              wechat_code: this.getString(this.$getCode()),
-//              info: res.userInfo,
-              encryptedData: res.encryptedData,
-              iv: res.iv
-            }
-//            debugger
-            // 绑定手机号
-            this.loading = true
-            this.$post({url: service.register, data}, {
-              success: ({code, data}) => {
-                wx.setStorageSync('token', data.token)
-                wx.showModal({
-                  title: '更新成功',
-                  content: '返回之前页面！',
-                  showCancel: false,
-                  success: (res) => {
+        const data = {
+          mobile: this.getString(this.mobile),
+          code: wx.getStorageSync('code'),
+          name: this.getString(this.name),
+          encryptedData: this.encryptedData,
+          iv: this.iv
+        }
+        // 绑定手机号
+        this.loading = true
+        this.$post({url: service.register, data}, {
+          success: ({code, data}) => {
+            wx.setStorageSync('token', data.token)
+            wx.showModal({
+              title: '更新成功',
+              content: '返回之前页面！',
+              showCancel: false,
+              success: (res) => {
 //                    if (res.confirm) {
-                    var jump = wx.getStorageSync('jump')
-                    if (jump) {
-                      wx.redirectTo({url: '/' + jump})
-                    } else {
-                      wx.redirectTo({url: '/pages/partyList'})
-                    }
-                  }
-                })
-              },
-              fail: ({code, data}) => {},
-              complete: () => { this.loading = false }
+                var jump = wx.getStorageSync('jump')
+                if (jump) {
+                  wx.redirectTo({url: '/' + jump})
+                } else {
+                  wx.redirectTo({url: '/pages/partyList'})
+                }
+              }
             })
           },
-          fail: (res) => { }
+          fail: ({code, data}) => {},
+          complete: () => { this.loading = false }
         })
       },
       typing (type, e) {
@@ -270,7 +263,7 @@
   .main-register{
     .weui-message{
       background: #F7EBA8;
-      margin-bottom: 48rpx;
+      margin-bottom: 92rpx;
       padding: 36rpx;
       text-align:center;
       font-size: 28rpx;
@@ -281,6 +274,7 @@
     .main-address{
       margin-bottom: 1em;
       padding: 36rpx;
+      padding-top: 48rpx;
     }
     .reset-cell-block{
       display:block !important;

@@ -107,7 +107,7 @@
     </view>
   </view>
   <view style="width: 100%;padding:22rpx 0 ">
-    <button @tap="goto('/pages/party/edit_party?party_id={{party_id}}')" class="weui-btn btn-blue flo_l">上一步</button>
+    <button @tap="lastStep('/pages/party/edit_party?party_id={{party_id}}')" class="weui-btn btn-blue flo_l">上一步</button>
     <form bindsubmit="formSubmit" report-submit>
       <button formType="submit" @tap="servants" class="weui-btn btn-blue_r flo_l" data-type="click">
         发布聚会
@@ -163,6 +163,7 @@
         this.$apply()
         this.initPageData(this.party_id)
       }
+
     }
 
     onPullDownRefresh() {
@@ -182,12 +183,24 @@
         data: {}
       }, {
         success: ({code, data}) => {
-          this.statiob_list = data
-          this.statiob_list.forEach(function (item, index, arr) {
+          let that = this
+          that.statiob_list = data
+          that.statiob_list.forEach(function (item, index, arr) {
             arr[index].icon_delete = '../../images/tabbars/minus.png'
             arr[index].idv = index
           })
-          this.$apply()
+          if (that.statiob_list.length == 0) {
+            wx.getStorage({
+              key: 'statiob_list',
+              success: function(res) {
+                that.statiob_list = res.data
+                that.$apply()
+//              debugger
+              }
+            })
+          }
+          console.log(that.statiob_list)
+          that.$apply()
         },
         fail: ({code, data}) => {},
         complete: () => { this.loading = false }
@@ -202,6 +215,13 @@
 //          console.log(this.statiob_list)
 //          debugger
 //        }
+      },
+      lastStep(url) {
+        wx.navigateTo({url: url})
+        wx.setStorage({
+          key: "statiob_list",
+          data: this.statiob_list
+        })
       },
       typing(index, type, num, e) {
         if (type == 'title') {
@@ -272,7 +292,8 @@
         }, {
           success: ({code, data}) => {
             console.log(data.id)
-            wx.navigateTo({url: '/pages/party/start_party?party_id=' + that.party_id})
+            wx.removeStorage({key: 'statiob_list'})
+            wx.reLaunch({url: '/pages/party/start_party?party_id=' + that.party_id})
           },
           fail: ({code, data}) => {
             // 失败了什么也不做

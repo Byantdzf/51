@@ -38,7 +38,7 @@
     </view>
     <view class="weui-cell">
       <view class="weui-cell__bd h4" style="position: relative">
-        <input @input="typing('fee')" class="weui-input" type="number" value="{{fee}}" placeholder="费用..." style="padding-left: 42rpx;"/>
+        <input @input="typing('fee')" class="weui-input" type="digit" value="{{fee}}" placeholder="费用..." style="padding-left: 42rpx;"/>
         <view style="position: absolute;left: 12rpx;top: 10rpx;font-size: 32rpx;color: #666666" class="bold">￥</view>
       </view>
     </view>
@@ -60,7 +60,7 @@
               <!--<input class="weui-input" disabled value="{{time}}" placeholder="时间及时长选择..."/>-->
             <!--</view>-->
           <!--</picker>-->
-          <picker mode="multiSelector" @change="bindMultiPickerChange"   range="{{time_duration}}">
+          <picker mode="multiSelector" @change="bindMultiPickerChange"   range="{{time_duration}}" value="{{multiIndex}}">
             <view class="picker">
               <!--当前选择：{{multiArray[0][multiIndex[0]]}}，{{multiArray[1][multiIndex[1]]}}，{{multiArray[2][multiIndex[2]]}}-->
               <view class="weui-input" style="padding:0 12rpx;">
@@ -147,14 +147,17 @@
       time_duration: [],
       durationIndex: 0,
       timeIndex: 0,
-      duration: '0.5'
+      duration: '0.5',
+      multiIndex: [0, 0]
     }
     onLoad(e) {
+//      let that = this
       this.pickerTime()
-      this.choose()
       if (e.party_id) {
         this.party_id = e.party_id
         this.initPageData(this.party_id)
+      } else {
+        this.choose()
       }
     }
     onShareAppMessage(res) {
@@ -180,12 +183,22 @@
       let time = []
       let duration = []
       let hour = 0
-//      let hour_d = 0
-      for (let i = 0; i < 6; i++) {
+//      let num = []
+      for (let i = 0; i < 48; i++) {
         let str = 0
-        str = 4 * (i + 1)
+        str = 0.5 * (i + 1)
         duration[i] = str
       }
+//      for (let i = 0; i < 6; i++) {
+//        let str = 0
+//        str = 4 * (i + 1)
+//        duration[i] = str
+//        hour += 0.5
+//        num.push(hour)
+//      }
+//      num.forEach(function (item) {
+//        duration.push(item)
+//      })
       for (let j = 0; j < 48; j++) {
         let str = ''
         let min = ''
@@ -197,6 +210,8 @@
         }
         if (j < 19) {
           str = '0' + hour + ':' + min
+        } else if (j == 47) {
+          str = '00' + ':' + min
         } else {
           str = hour + ':' + min
         }
@@ -238,6 +253,7 @@
               that.$apply()
             }
           })
+          that.multiIndex = [that.timeIndex, that.durationIndex]
           that.$apply()
         },
         fail: ({code, data}) => {
@@ -291,14 +307,52 @@
         })
       }
     }
+    openSetting() {
+      let that = this
+      wx.openSetting({
+        success: (res) => {
+          wepy.getLocation({
+            altitude: true,
+            type: 'gcj02',
+            success: function (res) {
+              that.latitude = res.latitude
+              that.longitude = res.longitude
+              that.$apply()
+              wepy.request({
+                url: 'https://apis.map.qq.com/ws/geocoder/v1/',
+                data: {
+                  key: 'DQ3BZ-SWT3U-HUQV7-BBO3U-OU7WS-53FBV',
+                  location: that.latitude + ',' + that.longitude
+                },
+                header: {
+                  'content-type': 'application/json' // 默认值
+                },
+                success: function(res) {
+                  let result = res.data.result
+                  that.address = result.formatted_addresses.recommend
+                  that.$apply()
+                }
+              })
+            },
+            fail: function () {
+            },
+            complete: function () {
+            }
+          })
+        }
+      })
+    }
     choose() {
       let that = this
       wepy.getLocation({
+        altitude: true,
+        type: 'gcj02',
         success: function (res) {
           that.latitude = res.latitude
           that.longitude = res.longitude
           that.$apply()
-          wx.request({
+          console.log(res)
+          wepy.request({
             url: 'https://apis.map.qq.com/ws/geocoder/v1/',
             data: {
               key: 'DQ3BZ-SWT3U-HUQV7-BBO3U-OU7WS-53FBV',
@@ -308,34 +362,25 @@
               'content-type': 'application/json' // 默认值
             },
             success: function(res) {
+              console.log(res)
               let result = res.data.result
               that.address = result.formatted_addresses.recommend
               that.$apply()
               console.log(that.address)
             }
           })
-//          that.$get({
-//            url: 'http://apis.map.qq.com/ws/geocoder/v1/',
-//            data: {
-//              key: 'DQ3BZ-SWT3U-HUQV7-BBO3U-OU7WS-53FBV',
-//              location: that.latitude + ',' + that.longitude
-//            }
-//          }, {
-//            success: ({code, data}) => {
-//              debugger
-//              that.address = data.result.address
-//              that.$apply()
-//              debugger
-//            },
-//            fail: ({code, data}) => {
-//            },
-//            complete: () => {
-//              this.loading = false
-//            }
-//          })
         },
         fail: function () {
-          // fail
+          wx.showModal({
+            title: '提示',
+            confirmText: '去授权',
+            content: '不授权将无法发起活动哦！',
+            success: (res) => {
+              if (res.confirm) {
+                that.openSetting()
+              }
+            }
+          })
         },
         complete: function () {
           // complete
@@ -382,9 +427,11 @@
       },
       choose() {
         let that = this
+        if (!that.latitude) {
+          that.openSetting()
+        }
         wepy.chooseLocation({
           success: function (res) {
-//            console.log(res,"location")
 //            that.address_detail = res.name
             that.address = res.name
 //            that.address = res.address
